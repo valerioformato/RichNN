@@ -1,6 +1,5 @@
 import tensorflow as tf
 from keras.datasets import mnist
-from keras.utils import to_categorical
 from keras.models import Sequential
 from keras.layers import Dense, Conv2D, MaxPooling2D, Flatten
 import keras.backend as K
@@ -44,11 +43,17 @@ config.gpu_options.allow_growth = True
 config.gpu_options.per_process_gpu_memory_fraction = 0.75
 session = tf.Session(config=config)
 
-dataMgr = RichDataMgr('training_data.root')
-(X_train, y_train), (X_test, y_test) = dataMgr.GetTrainingData(145, 20, 0.8, 100)
-print (X_train.shape[1], X_train.shape[2])
+processing_batch_size = 16
+dim, pad = 145, 20
 
-input_shape = X_train[0].shape
+trainDataMgr = RichDataMgr('training_data.root', processing_batch_size, True)
+testDataMgr  = RichDataMgr('training_data.root', processing_batch_size, False)
+
+trainDataMgr.SetShape(dim, pad)
+testDataMgr.SetShape(dim, pad)
+
+(x0_train, y0_train) = trainDataMgr[0]
+input_shape = x0_train[0].shape
 print("Input shape is ", input_shape)
 
 #plot the first image in the dataset
@@ -67,5 +72,15 @@ model.add(Conv2D(1 , kernel_size=5, padding='same', activation='relu'))
 #compile model using accuracy to measure model performance
 model.compile(optimizer='adam', loss=my_loss)
 
+train_Steps = len(trainDataMgr)
+test_Steps = len(testDataMgr)
+
 #train the model
-model.fit(X_train, y_train, batch_size=16, validation_data=(X_test, y_test), epochs=3)
+model.fit_generator(
+    generator=trainDataMgr,
+    steps_per_epoch=train_Steps,
+    # batch_size=processing_batch_size,
+    validation_data=testDataMgr,
+    validation_steps=test_Steps,
+    epochs=3
+    )
