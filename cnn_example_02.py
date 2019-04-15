@@ -1,3 +1,4 @@
+import tensorflow as tf
 from keras.datasets import mnist
 from keras.utils import to_categorical
 from keras.models import Sequential
@@ -38,11 +39,17 @@ def my_loss(y_true, y_pred): #controlla l'ordine
     return K.sum(K.sum(loss_vals, axis=-1), axis=1)
 
 
-dataMgr = RichDataMgr('/Volumes/AMS_Disk/DBar/test/test_ML/RichNN/data/training_data.root')
-(X_train, y_train), (X_test, y_test) = dataMgr.GetTrainingData(145, 20, 0.8, 200)
-print X_train.shape[1], X_train.shape[2]
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True
+config.gpu_options.per_process_gpu_memory_fraction = 0.75
+session = tf.Session(config=config)
+
+dataMgr = RichDataMgr('training_data.root')
+(X_train, y_train), (X_test, y_test) = dataMgr.GetTrainingData(145, 20, 0.8, 100)
+print (X_train.shape[1], X_train.shape[2])
 
 input_shape = X_train[0].shape
+print("Input shape is ", input_shape)
 
 #plot the first image in the dataset
 # plt.imshow(X_train[0])
@@ -61,4 +68,4 @@ model.add(Conv2D(1 , kernel_size=5, padding='same', activation='relu'))
 model.compile(optimizer='adam', loss=my_loss)
 
 #train the model
-model.fit(X_train, y_train, validation_data=(X_test, y_test), epochs=3)
+model.fit(X_train, y_train, batch_size=16, validation_data=(X_test, y_test), epochs=3)
