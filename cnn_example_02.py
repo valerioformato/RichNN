@@ -1,4 +1,7 @@
+from time import time
+
 import tensorflow as tf
+import keras.callbacks
 from keras.datasets import mnist
 from keras.models import Sequential
 from keras.layers import Dense, Conv2D, MaxPooling2D, Flatten
@@ -43,7 +46,7 @@ config.gpu_options.allow_growth = True
 config.gpu_options.per_process_gpu_memory_fraction = 0.75
 session = tf.Session(config=config)
 
-processing_batch_size = 16
+processing_batch_size = 32
 dim, pad = 145, 20
 
 trainDataMgr = RichDataMgr('training_data.root', processing_batch_size, True)
@@ -63,14 +66,19 @@ print("Input shape is ", input_shape)
 #create model
 model = Sequential()
 #add model layers
-model.add(Conv2D(32, kernel_size=5, padding='same', activation='relu', input_shape=input_shape))
-model.add(Conv2D(64, kernel_size=5, padding='same', activation='relu'))
-model.add(Conv2D(64, kernel_size=5, padding='same', activation='relu'))
-model.add(Conv2D(32, kernel_size=5, padding='same', activation='relu'))
-model.add(Conv2D(1 , kernel_size=5, padding='same', activation='relu'))
+model.add(Conv2D(8, kernel_size=5, padding='same', activation='relu', input_shape=input_shape))
+model.add(Conv2D(16, kernel_size=5, padding='same', activation='relu'))
+model.add(Conv2D(16, kernel_size=5, padding='same', activation='relu'))
+model.add(Conv2D(8, kernel_size=5, padding='same', activation='relu'))
+model.add(Conv2D(1, kernel_size=5, padding='same', activation='relu'))
+
+modelCallbacks = []
+modelCallbacks.append( keras.callbacks.TensorBoard(log_dir='./Graph/{}'.format(time()), histogram_freq=0, write_graph=True, write_images=True, update_freq=100*processing_batch_size) )
+modelCallbacks.append( keras.callbacks.TerminateOnNaN() )
+modelCallbacks.append( keras.callbacks.ModelCheckpoint('weights.{epoch:02d}-{val_loss:.2f}.hdf5', monitor='val_loss', verbose=1, save_best_only=False, save_weights_only=False, mode='auto', period=1) )
 
 #compile model using accuracy to measure model performance
-model.compile(optimizer='adam', loss=my_loss)
+model.compile(optimizer='adam', loss=my_loss, metrics=['accuracy'])
 
 train_Steps = len(trainDataMgr)
 test_Steps = len(testDataMgr)
@@ -79,8 +87,10 @@ test_Steps = len(testDataMgr)
 model.fit_generator(
     generator=trainDataMgr,
     steps_per_epoch=train_Steps,
-    # batch_size=processing_batch_size,
     validation_data=testDataMgr,
     validation_steps=test_Steps,
-    epochs=3
+    callbacks=modelCallbacks,
+    epochs=5
     )
+
+model.save('RichNN.h5')

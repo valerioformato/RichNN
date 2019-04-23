@@ -21,15 +21,15 @@ class RichDataMgr(Sequence):
     def __len__(self):
         if(self.is_training):
             self.firstev = 0
-            return np.ceil((1-self.testing_fraction)*len(self.tree[b'nTrTrack']) / float(self.batch_size))
+            return int(np.ceil((1-self.testing_fraction)*len(self.tree[b'nTrTrack']) / float(self.batch_size)))
         else:
             self.firstev = np.ceil((1-self.testing_fraction)*len(self.tree[b'nTrTrack']))
-            return np.ceil(self.testing_fraction*len(self.tree[b'nTrTrack']) / float(self.batch_size))
+            return int(np.ceil(self.testing_fraction*len(self.tree[b'nTrTrack']) / float(self.batch_size)))
 
     def __getitem__(self, idx):
         # print(self.firstev + idx * self.batch_size, self.firstev + (idx+1) * self.batch_size)
         # print self.tree.arrays([b'RichHits'], dict, 0, 16)#, self.firstev + 1 + idx * self.batch_size , self.firstev + 1 + (idx + 1) * self.batch_size)
-        return self.ConvertFromRootFormat(self.tree.arrays(self.branches, dict, self.firstev + idx * self.batch_size , self.firstev + (idx + 1) * self.batch_size))
+        return self.ConvertFromRootFormat(self.tree.arrays(self.branches, dict, None, self.firstev + idx * self.batch_size , self.firstev + (idx + 1) * self.batch_size))
 
     def Open(self, rootfile):
         self.rootfile = up.open(rootfile)
